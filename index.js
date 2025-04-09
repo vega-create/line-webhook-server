@@ -86,7 +86,6 @@ app.post('/send-message', async (req, res) => {
     scheduler.push(newJob);
     fs.writeFileSync(schedulerPath, JSON.stringify(scheduler, null, 2));
     return res.send({ success: true, message: '已排程發送' });
-    return res.send({ success: true, message: '已排程發送' }); 
   }
 
   try {
