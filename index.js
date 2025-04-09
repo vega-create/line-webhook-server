@@ -132,6 +132,24 @@ setInterval(async () => {
     }
   }
 }, 60 * 1000);
+const fs = require('fs');
+const schedulerPath = path.join(__dirname, 'scheduler.json');
+
+// ✅ GET：取得所有排程
+app.get('/schedules', (req, res) => {
+  const data = JSON.parse(fs.readFileSync(schedulerPath, 'utf8'));
+  res.json(data);
+});
+
+// ✅ DELETE：刪除特定排程
+app.delete('/schedules/:id', (req, res) => {
+  const id = req.params.id;
+  let data = JSON.parse(fs.readFileSync(schedulerPath, 'utf8'));
+  const updated = data.filter(item => item.id !== id);
+  fs.writeFileSync(schedulerPath, JSON.stringify(updated, null, 2));
+  res.json({ success: true });
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
