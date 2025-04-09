@@ -5,7 +5,7 @@
   <title>LINE 訊息排程工具</title>
 </head>
 <body>
-  <h2>LINE 訊息排程工具</h2>
+  <h2>LINE 訊息排程工具</h2> 
 
   <label>群組名稱（可複選）：</label>
   <select id="groupSelect" multiple size="5" style="width: 200px;"></select>
@@ -46,87 +46,102 @@
 
   <button onclick="sendMessage()">送出排程</button>
 
+  <hr />
+  <h3>⏰ 已排程訊息</h3>
+  <ul id="scheduleList"></ul>
+
   <script>
     let groupMap = {};
 
-    // 載入群組選單
     async function loadGroups() {
-      const res = await fetch('/groupMap.json');
-      const data = await res.json();
-      const select = document.getElementById('groupSelect');
-      data.forEach(group => {
-        const option = document.createElement('option');
-        option.value = group.name;
-        option.textContent = group.name;
-        select.appendChild(option);
-        groupMap[group.name] = group.id;
-      });
+      try {
+        const res = await fetch('/groupMap.json');
+        const data = await res.json();
+        const select = document.getElementById('groupSelect');
+        data.forEach(group => {
+          const option = document.createElement('option');
+          option.value = group.name;
+          option.textContent = group.name;
+          select.appendChild(option);
+          groupMap[group.name] = group.id;
+        });
+      } catch (err) {
+        alert('無法載入群組名單');
+      }
     }
 
     async function sendMessage() {
-      const selectedNames = Array.from(document.getElementById('groupSelect').selectedOptions)
-        .map(opt => opt.value);
+      try {
+        const selectedNames = Array.from(document.getElementById('groupSelect').selectedOptions)
+          .map(opt => opt.value);
 
-      const groupIds = selectedNames.map(name => groupMap[name]);
+        if (selectedNames.length === 0) {
+          alert('請選擇至少一個群組');
+          return;
+        }
 
-      const body = {
-        groupNames: selectedNames,
-        groupIds,
-        templateType: document.getElementById('templateType').value,
-        title: document.getElementById('title').value,
-        currency: document.getElementById('currency').value,
-        amount: document.getElementById('amount').value,
-        sendAt: new Date(document.getElementById('sendAt').value).toISOString(),
-        content: document.getElementById('customContent').value
-      };
+        const body = {
+          groupNames: selectedNames,
+          templateType: document.getElementById('templateType').value,
+          title: document.getElementById('title').value,
+          currency: document.getElementById('currency').value,
+          amount: document.getElementById('amount').value,
+          sendAt: new Date(document.getElementById('sendAt').value).toISOString(),
+          content: document.getElementById('customContent').value
+        };
 
-      const res = await fetch('/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+        const res = await fetch('/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
 
-      const data = await res.json();
-      alert(data.message || '已送出');
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          alert(data.message || '排程成功');
+          loadSchedules(); // 更新列表
+        } catch (e) {
+          alert('排程設置失敗：後端未回傳 JSON\n' + text);
+        }
+      } catch (err) {
+        alert('排程設置失敗：' + err.message);
+      }
     }
 
+    async function loadSchedules() {
+      try {
+        const res = await fetch('/schedules');
+        const schedules = await res.json();
+        const ul = document.getElementById('scheduleList');
+        ul.innerHTML = '';
+
+        schedules.forEach(item => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            📨 ${item.title} → ${item.groupNames.join(', ')} <br>
+            🕒 ${new Date(item.sendAt).toLocaleString()}
+            <button onclick="deleteSchedule('${item.id}')">刪除</button>
+            <br><br>
+          `;
+          ul.appendChild(li);
+        });
+      } catch (err) {
+        alert('載入排程失敗');
+      }
+    }
+
+    async function deleteSchedule(id) {
+      if (confirm('確定要刪除這筆排程嗎？')) {
+        await fetch(`/schedules/${id}`, { method: 'DELETE' });
+        alert('刪除成功');
+        loadSchedules();
+      }
+    }
+
+    // ✅ 初始載入
     loadGroups();
+    loadSchedules();
   </script>
-  <hr />
-<h3>⏰ 已排程訊息</h3>
-<ul id="scheduleList"></ul>
-
-<script>
-  async function loadSchedules() {
-    const res = await fetch('/schedules');
-    const schedules = await res.json();
-    const ul = document.getElementById('scheduleList');
-    ul.innerHTML = '';
-
-    schedules.forEach(item => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        📨 ${item.title} → ${item.groupNames.join(', ')} <br>
-        🕒 ${new Date(item.sendAt).toLocaleString()}
-        <button onclick="deleteSchedule('${item.id}')">刪除</button>
-        <br><br>
-      `;
-      ul.appendChild(li);
-    });
-  }
-
-  async function deleteSchedule(id) {
-    if (confirm('確定要刪除這筆排程嗎？')) {
-      await fetch(`/schedules/${id}`, { method: 'DELETE' });
-      alert('刪除成功');
-      loadSchedules();
-    }
-  }
-
-  // 初始載入
-  loadGroups();
-  loadSchedules();
-</script>
-
 </body>
 </html>
