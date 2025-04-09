@@ -5,32 +5,30 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ 設定靜態檔案路徑（給前端讀取群組資料等）
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// ✅ 載入群組對照檔
+// ✅ 載入群組對照
 const groupMapPath = path.join(__dirname, 'groupMap.json');
 let groupMap = {};
 if (fs.existsSync(groupMapPath)) {
   groupMap = JSON.parse(fs.readFileSync(groupMapPath));
 }
 
-// ✅ 載入排程檔案
+// ✅ 載入排程
 const schedulerPath = path.join(__dirname, 'scheduler.json');
 let scheduler = [];
 if (fs.existsSync(schedulerPath)) {
   scheduler = JSON.parse(fs.readFileSync(schedulerPath));
 }
 
-// ✅ LINE Webhook 接收與回覆
+// ✅ LINE Webhook 回覆
 app.post('/webhook', async (req, res) => {
   const events = req.body.events;
   for (let event of events) {
     if (event.type === 'message' && event.message.type === 'text') {
       const replyToken = event.replyToken;
       const userMessage = event.message.text;
-
       await axios.post('https://api.line.me/v2/bot/message/reply', {
         replyToken,
         messages: [{ type: 'text', text: `你說的是：${userMessage}` }]
@@ -45,7 +43,7 @@ app.post('/webhook', async (req, res) => {
   res.status(200).send('OK');
 });
 
-// ✅ 發送或排程訊息
+// ✅ 送出訊息或排程
 app.post('/send-message', async (req, res) => {
   const {
     groupNames,
@@ -78,7 +76,8 @@ app.post('/send-message', async (req, res) => {
 
   if (sendAt) {
     const newJob = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`, // 唯一ID
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      groupNames,
       groupIds,
       title,
       messageText,
@@ -108,7 +107,7 @@ app.post('/send-message', async (req, res) => {
   }
 });
 
-// ✅ 每分鐘檢查一次排程是否要發送
+// ✅ 每分鐘檢查是否有排程需要發送
 setInterval(async () => {
   const now = new Date();
   const toSend = scheduler.filter(item => new Date(item.sendAt) <= now);
@@ -134,25 +133,30 @@ setInterval(async () => {
   }
 }, 60 * 1000);
 
-// ✅ 取得所有排程
+// ✅ 列出所有排程
 app.get('/schedules', (req, res) => {
   const data = JSON.parse(fs.readFileSync(schedulerPath, 'utf8'));
   res.json(data);
 });
 
-// ✅ 刪除指定排程
+// ✅ 刪除單筆排程
 app.delete('/schedules/:id', (req, res) => {
   const id = req.params.id;
   let data = JSON.parse(fs.readFileSync(schedulerPath, 'utf8'));
   const updated = data.filter(item => item.id !== id);
   fs.writeFileSync(schedulerPath, JSON.stringify(updated, null, 2));
-  scheduler = updated; // 更新記憶體內資料
+  scheduler = updated;
   res.json({ success: true });
 });
 
-// ✅ 前端首頁
+// ✅ 前端主頁
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ✅ 排程管理頁面
+app.get('/manage', (req, res) => {
+  res.sendFile(path.join(__dirname, 'manage.html'));
 });
 
 // ✅ 啟動伺服器
