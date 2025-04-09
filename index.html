@@ -1,0 +1,63 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>智慧媽咪 LINE 訊息排程</title>
+</head>
+<body>
+  <h2>LINE 訊息排程工具</h2>
+
+  <label>群組名稱：</label>
+  <input type="text" id="group" value="小幫手" />
+  <br /><br />
+
+  <label>訊息標題：</label>
+  <input type="text" id="title" value="付款提醒" />
+  <br /><br />
+
+  <label>訊息類型：</label>
+  <select id="templateType">
+    <option value="收款通知">收款通知</option>
+    <option value="入帳通知">入帳通知</option>
+    <option value="自訂">自訂</option>
+  </select>
+  <br /><br />
+
+  <label>幣別：</label>
+  <input type="text" id="currency" value="NT$" />
+  <br /><br />
+
+  <label>金額：</label>
+  <input type="number" id="amount" value="1200" />
+  <br /><br />
+
+  <label>發送時間（未來時間）：</label>
+  <input type="datetime-local" id="sendAt" />
+  <br /><br />
+
+  <button onclick="sendMessage()">送出排程</button>
+
+  <script>
+    async function sendMessage() {
+      const body = {
+        groupNames: [document.getElementById("group").value],
+        templateType: document.getElementById("templateType").value,
+        title: document.getElementById("title").value,
+        currency: document.getElementById("currency").value,
+        amount: document.getElementById("amount").value,
+        sendAt: new Date(document.getElementById("sendAt").value).toISOString()
+      };
+
+      const res = await fetch('/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      alert(data.message || '已送出');
+    }
+  </script>
+</body>
+</html>
