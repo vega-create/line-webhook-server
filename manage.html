@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>排程管理工具</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    button {
+      padding: 6px 12px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <h2>排程管理頁面</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>標題</th>
+        <th>發送時間</th>
+        <th>內容預覽</th>
+        <th>刪除</th>
+      </tr>
+    </thead>
+    <tbody id="scheduleList">
+      <!-- 自動插入資料 -->
+    </tbody>
+  </table>
+
+  <script>
+    async function fetchSchedules() {
+      const res = await fetch('/schedules');
+      const schedules = await res.json();
+
+      const tbody = document.getElementById('scheduleList');
+      tbody.innerHTML = '';
+
+      schedules.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.title}</td>
+          <td>${new Date(item.sendAt).toLocaleString()}</td>
+          <td>${item.messageText.slice(0, 50)}...</td>
+          <td><button onclick="deleteSchedule(${index})">刪除</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function deleteSchedule(id) {
+      if (!confirm('確定要刪除這筆排程嗎？')) return;
+
+      const res = await fetch('/schedules/' + id, { method: 'DELETE' });
+      const result = await res.json();
+      if (result.success) {
+        alert('已刪除');
+        fetchSchedules();
+      } else {
+        alert('刪除失敗');
+      }
+    }
+
+    fetchSchedules();
+  </script>
+</body>
+</html>
