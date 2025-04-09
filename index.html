@@ -92,5 +92,41 @@
 
     loadGroups();
   </script>
+  <hr />
+<h3>⏰ 已排程訊息</h3>
+<ul id="scheduleList"></ul>
+
+<script>
+  async function loadSchedules() {
+    const res = await fetch('/schedules');
+    const schedules = await res.json();
+    const ul = document.getElementById('scheduleList');
+    ul.innerHTML = '';
+
+    schedules.forEach(item => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        📨 ${item.title} → ${item.groupNames.join(', ')} <br>
+        🕒 ${new Date(item.sendAt).toLocaleString()}
+        <button onclick="deleteSchedule('${item.id}')">刪除</button>
+        <br><br>
+      `;
+      ul.appendChild(li);
+    });
+  }
+
+  async function deleteSchedule(id) {
+    if (confirm('確定要刪除這筆排程嗎？')) {
+      await fetch(`/schedules/${id}`, { method: 'DELETE' });
+      alert('刪除成功');
+      loadSchedules();
+    }
+  }
+
+  // 初始載入
+  loadGroups();
+  loadSchedules();
+</script>
+
 </body>
 </html>
